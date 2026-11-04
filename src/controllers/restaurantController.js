@@ -1,4 +1,5 @@
 import {Restaurant} from '../models/Restaurant.js';
+import {Interaction} from '../models/Interaction.js';
 import {config} from '../config.js';
 import {recommend,summarize,detailMenus,representativeItem,emojiOf} from '../services/recommendation.js';
 const fail=(message,status=400)=>{const e=new Error(message);e.status=status;throw e;};
@@ -16,7 +17,8 @@ export async function list(req,res){
 }
 export async function detail(req,res){
  const row=await find(req.params.id),cats=await Restaurant.categories();
- if(req.user)await Restaurant.touch(req.user.id,row.id);
+ // 로그인한 경우 최근 본 식당 + 행동 기록(view)을 남깁니다. (심층 추천의 개인 취향에 사용)
+ if(req.user)await Promise.all([Restaurant.touch(req.user.id,row.id),Interaction.log(req.user.id,{restaurantId:row.id,type:'view'})]);
  const saved=req.user?(await Restaurant.favoriteIds(req.user.id)).includes(row.id):false;
  res.json({restaurant:{...summarize(row,config.school,cats),menus:detailMenus(row,cats),saved},
   reviews:row.reviews.map(v=>({id:v.id,userId:v.userId,name:v.user.name,rating:v.rating,comment:v.comment,createdAt:v.createdAt,updatedAt:v.updatedAt||null})).sort((a,b)=>new Date(b.createdAt)-new Date(a.createdAt))});

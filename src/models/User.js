@@ -4,6 +4,8 @@ const pg=()=>config.storage==='postgres';
 export const User = {
  findByEmail: async email => pg() ? db.user.findUnique({where:{email}}) : readStore(d=>d.users.find(x=>x.email===email)),
  findById: async id => pg() ? db.user.findUnique({where:{id}}) : readStore(d=>d.users.find(x=>x.id===id)),
+ // 관리자 화면: 회원 목록 (비밀번호 해시는 내보내지 않습니다)
+ list: async () => (pg() ? await db.user.findMany({orderBy:{id:'asc'},select:{id:true,email:true,name:true,role:true,createdAt:true}}) : readStore(d=>d.users.map(({id,email,name,role,createdAt})=>({id,email,name,role:role||'user',createdAt})))),
  create: async fields => {
   if(pg()) return db.user.create({data:fields});
   return mutateStore(d=>{if(d.users.some(x=>x.email===fields.email)) {const e=new Error('이미 가입된 이메일입니다.');e.status=409;throw e;} const user={...fields,id:nextId(d.users),createdAt:new Date().toISOString()};d.users.push(user);return user;});
@@ -26,6 +28,6 @@ export const User = {
  // 회원 탈퇴: 계정과 세션·후기·찜·최근 기록을 모두 삭제합니다. (DB는 onDelete:Cascade)
  remove: async userId => {
   if(pg()) return db.user.delete({where:{id:userId}});
-  return mutateStore(d=>{d.users=d.users.filter(x=>x.id!==userId);for(const k of ['sessions','reviews','favorites','recentViews'])d[k]=d[k].filter(x=>x.userId!==userId);});
+  return mutateStore(d=>{d.users=d.users.filter(x=>x.id!==userId);for(const k of ['sessions','reviews','favorites','recentViews','interactions'])d[k]=d[k].filter(x=>x.userId!==userId);});
  }
 };

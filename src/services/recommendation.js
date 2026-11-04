@@ -1,3 +1,4 @@
+import {expandQuery,menuMatches,restaurantMatches} from './search.js';
 // ===== 추천 설정 (여기 숫자만 바꾸면 추천 결과가 달라집니다) =====
 export const SETTINGS={
  targetRatio:.8,      // 예산의 80% 정도를 쓰는 메뉴를 가장 '알맞은' 가격으로 봅니다.
@@ -39,15 +40,16 @@ export function menuItem(r,menu,school,categories,budget){const row=summarize(r,
 export function representativeItem(r,school,categories){const menus=[...(r.menus||[])].sort((a,b)=>a.price-b.price);const menu=menus.find(m=>!isSharedMenu(m.name))||menus[0];
  return menu?menuItem(r,menu,school,categories):{...summarize(r,school,categories),restaurantId:r.id,menuId:null,menuName:'메뉴 없음',price:null};}
 
-const normalize=s=>String(s||'').toLowerCase().replace(/\s+/g,'');
+// 검색어 동의어 확장 (예: 햄버거 → 버거·와퍼) — 단어 추가는 src/services/search.js의 SYNONYMS에서
 // 식당마다 조건(예산·카테고리·검색어)에 맞는 메뉴 중 점수가 가장 높은 메뉴 1개를 고르고 정렬합니다.
 export function recommend(rows,{budget,category='all',sort='recommend',query=''},school,categories=[]){
- const q=normalize(query);
+ const ex=expandQuery(query,{categories});
  return rows.map(r=>{
    const fits=(r.menus||[]).filter(m=>m.price<=budget&&!isSharedMenu(m.name)&&(category==='all'||(m.categoryIds||[]).includes(Number(category))));
    // 검색어: 메뉴 이름이 맞으면 그 메뉴를, 식당 이름만 맞으면 그 식당의 메뉴 전체를 후보로 사용합니다.
-   const nameHits=q?fits.filter(m=>normalize(m.name).includes(q)):fits;
-   const candidates=nameHits.length?nameHits:(q&&normalize(r.name).includes(q)?fits:[]);
+   // 메뉴 이름(동의어 포함)·카테고리 이름이 맞으면 그 메뉴를, 식당 이름만 맞으면 그 식당의 메뉴 전체를 후보로 사용합니다.
+   const nameHits=ex?fits.filter(m=>menuMatches(m,ex)):fits;
+   const candidates=nameHits.length?nameHits:(ex&&restaurantMatches(r,ex)?fits:[]);
    return candidates
     .map(m=>menuItem(r,m,school,categories,budget))
     // 가격순이면 식당마다 가장 싼 메뉴, 그 외에는 점수가 가장 높은 메뉴를 대표로 고릅니다.

@@ -18,6 +18,7 @@ model Restaurant {
  reviews Review[]
  favorites Favorite[]
  recentViews RecentView[]
+ interactions UserMenuInteraction[]
  @@map("restaurants")
 }
 model Menu {
@@ -26,9 +27,34 @@ model Menu {
  restaurant Restaurant @relation(fields:[restaurantId],references:[id],onDelete:Cascade)
  name String
  price Int
+ // ===== 심층 추천용 메뉴 속성 =====
+ spicyLevel Int @default(0) @map("spicy_level") @db.SmallInt     // 0 안 매움 · 1 살짝 · 2 매콤 · 3 아주 매움
+ portionLevel Int @default(2) @map("portion_level") @db.SmallInt // 1 가볍게 · 2 보통 · 3 든든하게
+ isRice Boolean @default(false) @map("is_rice")
+ isNoodle Boolean @default(false) @map("is_noodle")
+ isSoup Boolean @default(false) @map("is_soup")
+ isMeat Boolean @default(false) @map("is_meat")
  categories MenuCategory[]
+ tags MenuTag[]
+ interactions UserMenuInteraction[]
  @@index([restaurantId,price])
  @@map("menus")
+}
+// 메뉴의 느낌 태그 (뜨끈한·시원한·바삭한·치즈·해산물·건강한·간편한)
+model Tag {
+ id Int @id @default(autoincrement())
+ name String @unique
+ menus MenuTag[]
+ @@map("tags")
+}
+model MenuTag {
+ menuId Int @map("menu_id")
+ tagId Int @map("tag_id")
+ menu Menu @relation(fields:[menuId],references:[id],onDelete:Cascade)
+ tag Tag @relation(fields:[tagId],references:[id],onDelete:Cascade)
+ @@id([menuId,tagId])
+ @@index([tagId])
+ @@map("menu_tags")
 }
 model Category {
  id Int @id @default(autoincrement())
@@ -52,11 +78,13 @@ model User {
  email String @unique
  password String
  name String
+ role String @default("user")   // user · admin
  createdAt DateTime @default(now()) @map("created_at")
  reviews Review[]
  favorites Favorite[]
  recentViews RecentView[]
  sessions Session[]
+ interactions UserMenuInteraction[]
 }
 model Review {
  id Int @id @default(autoincrement())
@@ -95,4 +123,22 @@ model Session {
  user User @relation(fields:[userId],references:[id],onDelete:Cascade)
  expiresAt DateTime @map("expires_at")
  @@index([expiresAt])
+}
+
+// ===== 행동 기록: 개인화(심층) 추천에 사용 =====
+// type: view(식당 상세 열기) · click(추천 목록에서 메뉴 선택) · recommend_click(심층 추천 결과 선택)
+// 찜·후기는 Favorite·Review 테이블을 그대로 사용하므로 여기에 중복 저장하지 않습니다.
+model UserMenuInteraction {
+ id Int @id @default(autoincrement())
+ userId Int @map("user_id")
+ restaurantId Int @map("restaurant_id")
+ menuId Int? @map("menu_id")
+ type String
+ createdAt DateTime @default(now()) @map("created_at")
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ restaurant Restaurant @relation(fields:[restaurantId],references:[id],onDelete:Cascade)
+ menu Menu? @relation(fields:[menuId],references:[id],onDelete:Cascade)
+ @@index([userId,createdAt])
+ @@index([menuId])
+ @@map("user_menu_interactions")
 }

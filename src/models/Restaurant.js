@@ -3,12 +3,13 @@ import {db,readStore,readCatalog,mutateStore,nextId} from './store.js';
 const pg=()=>config.storage==='postgres';
 // 화면에서 쓰는 공통 모양: {id,name,address,lat,lng,menus:[{id,name,price,categoryIds}],reviews:[{...,user:{name}}]}
 const fromDb=r=>({id:r.id,name:r.name,address:r.address,lat:r.lat,lng:r.lng,
- menus:r.menus.map(m=>({id:m.id,name:m.name,price:m.price,categoryIds:m.categories.map(c=>c.categoryId)})),
+ menus:r.menus.map(m=>({id:m.id,name:m.name,price:m.price,spicyLevel:m.spicyLevel,portionLevel:m.portionLevel,isRice:m.isRice,isNoodle:m.isNoodle,isSoup:m.isSoup,isMeat:m.isMeat,categoryIds:m.categories.map(c=>c.categoryId),tagIds:m.tags.map(t=>t.tagId)})),
  reviews:r.reviews});
 export const Restaurant={
  categories:async()=>pg()?db.category.findMany({orderBy:{id:'asc'}}):readCatalog(c=>c.categories),
+ tags:async()=>pg()?db.tag.findMany({orderBy:{id:'asc'}}):readCatalog(c=>c.tags),
  all:async()=>pg()
-  ?(await db.restaurant.findMany({orderBy:{id:'asc'},include:{menus:{orderBy:{price:'asc'},include:{categories:{select:{categoryId:true}}}},reviews:{include:{user:{select:{name:true}}}}}})).map(fromDb)
+  ?(await db.restaurant.findMany({orderBy:{id:'asc'},include:{menus:{orderBy:{price:'asc'},include:{categories:{select:{categoryId:true}},tags:{select:{tagId:true}}}},reviews:{include:{user:{select:{name:true}}}}}})).map(fromDb)
   :readStore(d=>readCatalog(c=>c.restaurants.map(r=>({...r,reviews:d.reviews.filter(x=>x.restaurantId===r.id).map(x=>({...x,user:{name:d.users.find(u=>u.id===x.userId)?.name||'학생'}}))})))),
  favoriteIds:async userId=>pg()?(await db.favorite.findMany({where:{userId}})).map(x=>x.restaurantId):readStore(d=>d.favorites.filter(x=>x.userId===userId).map(x=>x.restaurantId)),
  setFavorite:async(userId,restaurantId,saved)=>{

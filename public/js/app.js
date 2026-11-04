@@ -1,5 +1,6 @@
 import {request} from './api.js';
-import {initializeMap,setMarkers,showRestaurant,clearRestaurant,relayout} from './map.js';
+import {initializeMap,showRestaurant,showSchool,relayout} from './map.js';
+import {initDeep,deepAuthChanged} from './deep.js';
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
 const money=n=>Number(n).toLocaleString('ko-KR')+'원';
 const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -18,14 +19,15 @@ const ratingText=r=>r.rating===null?'아직 평점이 없어요':`★ ${r.rating
 function account(){const btn=$('#loginOpen');btn.textContent=state.user?`${state.user.name}님 ▾`:'로그인 / 회원가입';btn.setAttribute('aria-haspopup',state.user?'dialog':'false');}
 function switchAuth(signup){state.signup=signup;$('#authTitle').textContent=signup?'밥잇 회원가입':'밥잇에 오신 것을 환영해요!';$('#nameField').hidden=!signup;$('#authName').required=signup;$('#agreeField').hidden=!signup;$('#authAgree').required=signup;$('#authSubmit').textContent=signup?'회원가입':'로그인';$('#authPassword').autocomplete=signup?'new-password':'current-password';$('#switchAuth').textContent=signup?'이미 회원인가요? 로그인':'처음 오셨나요? 회원가입';$('#authError').textContent='';}
 function loginPrompt(){switchAuth(false);openDialog('#authDialog');}
+$('#authDialog').addEventListener('close',()=>{if(!state.user)state.afterLogin=null;});
 function openAccount(){$('#accountTitle').textContent=`${state.user.name}님`;$('#accountEmail').textContent=state.user.email;$$('#accountDialog details').forEach(d=>d.open=false);$('#passwordForm').reset();$('#deleteForm').reset();$('#passwordError').textContent=$('#deleteError').textContent='';openDialog('#accountDialog');}
-async function afterAuthChange(message){account();await loadAll();if(state.detailId&&$('#detailDialog').open)await showDetail(state.detailId,{reopen:false});if(message)toast(message);}
+async function afterAuthChange(message){account();await Promise.all([loadAll(),deepAuthChanged(state.user)]);if(state.detailId&&$('#detailDialog').open)await showDetail(state.detailId,{reopen:false});if(message)toast(message);}
 $('#loginOpen').addEventListener('click',()=>state.user?openAccount():loginPrompt());
 $('#logoutBtn').addEventListener('click',async()=>{try{await request('/auth/logout',{method:'POST',body:{}});state.user=null;$('#accountDialog').close();await afterAuthChange('로그아웃했어요.');}catch(e){toast(e.message);}});
 $('#passwordForm').addEventListener('submit',async e=>{e.preventDefault();const btn=e.submitter;btn.disabled=true;$('#passwordError').textContent='';try{const data=await request('/auth/password',{method:'PUT',body:{currentPassword:$('#currentPassword').value,newPassword:$('#newPassword').value}});$('#passwordForm').reset();$('#accountDialog').close();toast(data.message);}catch(err){$('#passwordError').textContent=err.message;}finally{btn.disabled=false;}});
 $('#deleteForm').addEventListener('submit',async e=>{e.preventDefault();if(!confirm('정말 탈퇴할까요? 찜·최근 기록·후기가 모두 삭제됩니다.'))return;const btn=e.submitter;btn.disabled=true;$('#deleteError').textContent='';try{const data=await request('/auth/account',{method:'DELETE',body:{password:$('#deletePassword').value}});state.user=null;$('#accountDialog').close();await afterAuthChange(data.message);}catch(err){$('#deleteError').textContent=err.message;}finally{btn.disabled=false;}});
 $('#switchAuth').addEventListener('click',()=>switchAuth(!state.signup));
-$('#authForm').addEventListener('submit',async e=>{e.preventDefault();$('#authSubmit').disabled=true;$('#authError').textContent='';try{const data=await request('/auth/'+(state.signup?'signup':'login'),{method:'POST',body:{email:$('#authEmail').value,password:$('#authPassword').value,name:$('#authName').value,agree:$('#authAgree').checked}});state.user=data.user;$('#authDialog').close();$('#authForm').reset();await afterAuthChange('반가워요, '+state.user.name+'님!');}catch(err){$('#authError').textContent=err.message;}finally{$('#authSubmit').disabled=false;}});
+$('#authForm').addEventListener('submit',async e=>{e.preventDefault();$('#authSubmit').disabled=true;$('#authError').textContent='';try{const data=await request('/auth/'+(state.signup?'signup':'login'),{method:'POST',body:{email:$('#authEmail').value,password:$('#authPassword').value,name:$('#authName').value,agree:$('#authAgree').checked}});state.user=data.user;$('#authDialog').close();$('#authForm').reset();await afterAuthChange('반가워요, '+state.user.name+'님!');if(state.afterLogin){const key=state.afterLogin;state.afterLogin=null;openMyList(key);}}catch(err){$('#authError').textContent=err.message;}finally{$('#authSubmit').disabled=false;}});
 
 // ===== 목록 카드 (한 줄 = 메뉴 한 개) =====
 const cardKey=r=>`${r.restaurantId??r.id}-${r.menuId??0}`;
@@ -36,8 +38,8 @@ function setView(view){$('#resultLayout').dataset.view=view;$$('[data-view][role
 $$('[data-view][role=tab]').forEach(t=>t.addEventListener('click',()=>setView(t.dataset.view)));
 function markSelected(){$$('#resultList [data-focus]').forEach(c=>c.classList.toggle('selected',c.dataset.key===state.selectedKey));}
 function selectRow(row,{toMap=true}={}){if(!row)return;state.selectedKey=cardKey(row);markSelected();if(!showRestaurant(row)){if(toMap)toast('지도를 불러온 뒤 위치를 확인할 수 있어요.');return;}if(toMap&&isMobile()){setView('map');$('#mapPanel').scrollIntoView({behavior:'smooth',block:'center'});}}
-// 지도 마커를 누르면: 그 식당 카드가 있는 페이지로 이동해 선택 표시
-function selectFromMarker(id){const index=state.rows.findIndex(r=>r.restaurantId===id);if(index<0)return;setPage(Math.floor(index/PAGE_SIZE));selectRow(state.rows[index],{toMap:false});}
+// 추천 목록에 있는 식당이면 그 카드가 있는 페이지로 이동해 선택하고 마커를 옮깁니다.
+function selectRestaurant(id){const index=state.rows.findIndex(r=>r.restaurantId===id);if(index<0)return;setPage(Math.floor(index/PAGE_SIZE));selectRow(state.rows[index],{toMap:false});}
 
 // ===== 예산 입력: 숫자만 허용, 500원 단위 증감 =====
 const budgetInput=$('#budget');
@@ -59,19 +61,21 @@ const pageRows=(page=state.page)=>state.rows.slice(page*PAGE_SIZE,(page+1)*PAGE_
 const listEl=$('#resultList');
 // 페이지마다 카드 수가 달라도 빈 공간이 생기지 않도록 목록 높이를 현재 페이지에 맞춥니다.
 function fitHeight(){const page=listEl.children[state.page];listEl.style.height=page&&page.classList.contains('result-page')?page.offsetHeight+'px':'';}
+function updateKeywordChip(){const q=$('#keyword').value.trim();$('#keywordClear').hidden=!$('#keyword').value;const chip=$('#keywordChip');chip.hidden=!q;chip.innerHTML=q?`🔍 ‘${escape(q)}’ 검색 결과 <button type="button" class="chip-clear" data-keyword-clear>검색어 지우기 ×</button>`:'';}
 function updatePager(){fitHeight();const total=pageCount();$('#pager').hidden=state.rows.length<=PAGE_SIZE;$('#pageInfo').textContent=`${state.page+1} / ${total}`;$('#prevPage').disabled=state.page<=0;$('#nextPage').disabled=state.page>=total-1;$('#resultCount').textContent=state.rows.length?`식당 ${state.rows.length}곳의 추천 메뉴 · ${state.page+1}/${total}페이지`:'식당 0곳의 추천 메뉴';$('#randomPick').disabled=!state.rows.length;}
 function setPage(page,{scroll=true,smooth=true}={}){const next=Math.min(pageCount()-1,Math.max(0,page));state.page=next;if(scroll)listEl.scrollTo({left:next*listEl.clientWidth,behavior:smooth?'smooth':'auto'});updatePager();}
 function renderSearch(keepPage=false){if(!keepPage)state.page=0;state.page=Math.min(state.page,pageCount()-1);
  if(!state.rows.length){const q=$('#keyword').value.trim();listEl.innerHTML=`<div class="empty-state"><b>조건에 맞는 메뉴가 없어요.</b><p>${q?`‘${escape(q)}’ 검색어를 지우거나 `:''}예산을 높이거나 다른 카테고리를 선택해 보세요.</p></div>`;}
  else{const pages=[];for(let i=0;i<pageCount();i++)pages.push(`<div class="result-page" role="group" aria-label="${pageCount()}페이지 중 ${i+1}페이지">${pageRows(i).map(rowHtml).join('')}</div>`);listEl.innerHTML=pages.join('');}
  listEl.scrollLeft=state.page*listEl.clientWidth;updatePager();}
-function showSearchError(message){$('#resultCount').textContent='식당을 불러오지 못했어요';$('#pager').hidden=true;state.rows=[];listEl.innerHTML=`<div class="empty-state"><b>${escape(message)}</b><button class="ghost-btn error-retry" data-retry>다시 시도</button></div>`;setMarkers([]);clearRestaurant();}
+function showSearchError(message){$('#resultCount').textContent='식당을 불러오지 못했어요';$('#pager').hidden=true;state.rows=[];listEl.innerHTML=`<div class="empty-state"><b>${escape(message)}</b><button class="ghost-btn error-retry" data-retry>다시 시도</button></div>`;showSchool();}
 async function load({keep=false}={}){abort?.abort();abort=new AbortController();const current=abort;listEl.setAttribute('aria-busy','true');
  try{const budget=budgetValue();if(budget<BUDGET_MIN||budget>BUDGET_MAX){showSearchError('예산은 3,000~30,000원 사이로 입력해 주세요.');budgetInput.focus();return;}
-  const params={budget,category:state.category,sort:state.sort};const q=$('#keyword').value.trim();if(q)params.q=q;
-  const data=await request('/restaurants?'+new URLSearchParams(params),{signal:current.signal});if(current!==abort)return;state.rows=data.items;setMarkers(state.rows);
+  const params={budget,category:state.category,sort:state.sort};const q=$('#keyword').value.trim();if(q)params.q=q;updateKeywordChip();
+  const data=await request('/restaurants?'+new URLSearchParams(params),{signal:current.signal});if(current!==abort)return;state.rows=data.items;
   if(keep){renderSearch(true);const row=state.rows.find(r=>cardKey(r)===state.selectedKey);if(row)selectRow(row,{toMap:false});return;}
-  state.selectedKey=state.rows[0]?cardKey(state.rows[0]):null;renderSearch();if(state.rows[0])showRestaurant(state.rows[0]);else clearRestaurant();
+  // 새로 검색하면 선택을 풀고 마커를 학교로 되돌립니다. 메뉴를 누르면 그 식당으로 옮겨갑니다.
+  state.selectedKey=null;renderSearch();showSchool();
  }catch(e){if(e.name==='AbortError')return;showSearchError(e.message);}finally{if(current===abort)listEl.removeAttribute('aria-busy');}}
 // '다시 시도': 지금 선택한 조건 그대로 다시 불러옵니다.
 const retrySearch=()=>load({keep:true});
@@ -83,14 +87,16 @@ window.addEventListener('resize',()=>{listEl.scrollLeft=state.page*listEl.client
 // 🎲 오늘 뭐 먹지?: 지금 추천 목록 중 하나를 무작위로 골라 보여줍니다.
 $('#randomPick').addEventListener('click',()=>{if(!state.rows.length)return;let i=Math.floor(Math.random()*state.rows.length);if(state.rows.length>1&&cardKey(state.rows[i])===state.selectedKey)i=(i+1)%state.rows.length;const row=state.rows[i];setPage(Math.floor(i/PAGE_SIZE));selectRow(row,{toMap:false});listEl.querySelector(`[data-key="${cardKey(row)}"]`)?.classList.add('picked');toast(`오늘은 ${row.name}의 ${row.menuName} 어때요? 🍽️`);});
 
-// ===== 찜한 맛집 / 최근 본 식당 =====
-// 로그인 전에는 안내 박스를 '찜한 맛집' 한 곳에만 보여주고 '최근 본 식당' 섹션은 숨깁니다.
+// ===== 찜한 맛집 / 최근 본 식당: 상단 메뉴를 누르면 각각의 확인창으로 열립니다 =====
 const myLists={favorites:{list:'#favoritesList',count:'#favoritesCount',empty:'아직 찜한 식당이 없어요.'},recent:{list:'#recentList',count:'#recentCount',empty:'아직 확인한 식당이 없어요.'}};
-async function loadMine(which=['favorites','recent']){$('#recent').hidden=!state.user;
+async function loadMine(which=['favorites','recent']){
  for(const key of which){const cfg=myLists[key];const el=$(cfg.list);
-  if(!state.user){state[key]=[];$(cfg.count).textContent='내 식당 목록';el.innerHTML=key==='favorites'?'<div class="empty-state"><b>로그인하면 찜한 맛집과 최근 본 식당을 볼 수 있어요.</b><p>마음에 드는 식당을 계정에 저장해 두세요.</p><button class="primary-btn" data-login>로그인 / 회원가입</button></div>':'';continue;}
-  el.setAttribute('aria-busy','true');try{const data=await request('/me/'+key);state[key]=data.items;$(cfg.count).textContent=`${data.items.length}개의 식당`;el.innerHTML=data.items.length?data.items.map(rowHtml).join(''):`<div class="empty-state"><b>${cfg.empty}</b><p>맛집 찾기에서 관심 있는 식당을 확인해 보세요.</p></div>`;}catch(e){$(cfg.count).textContent='목록을 불러오지 못했어요';el.innerHTML=`<div class="empty-state"><b>${escape(e.message)}</b><button class="ghost-btn error-retry" data-retry>다시 시도</button></div>`;}finally{el.removeAttribute('aria-busy');}}}
+  if(!state.user){state[key]=[];$(cfg.count).textContent='내 식당 목록';el.innerHTML='<div class="empty-state"><b>로그인하면 내 식당 목록을 볼 수 있어요.</b></div>';continue;}
+  el.setAttribute('aria-busy','true');try{const data=await request('/me/'+key);state[key]=data.items;$(cfg.count).textContent=`${data.items.length}개의 식당`;el.innerHTML=data.items.length?data.items.map(rowHtml).join(''):`<div class="empty-state"><b>${cfg.empty}</b><p>맛집 찾기에서 관심 있는 식당을 확인해 보세요.</p><button class="ghost-btn" data-close-list>맛집 찾으러 가기</button></div>`;}catch(e){$(cfg.count).textContent='목록을 불러오지 못했어요';el.innerHTML=`<div class="empty-state"><b>${escape(e.message)}</b><button class="ghost-btn error-retry" data-retry>다시 시도</button></div>`;}finally{el.removeAttribute('aria-busy');}}}
 const loadAll=()=>Promise.all([load({keep:true}),loadMine()]);
+// 로그인 전이면 로그인 창을 먼저 열고, 로그인하면 바로 그 목록 창을 열어 줍니다.
+function openMyList(key){$('#mainNav').classList.remove('open');$('#menuToggle').setAttribute('aria-expanded','false');if(!state.user){state.afterLogin=key;toast(key==='favorites'?'찜한 맛집은 로그인 후 볼 수 있어요.':'최근 본 식당은 로그인 후 볼 수 있어요.');return loginPrompt();}openDialog('#'+key+'Dialog');loadMine([key]);}
+$$('[data-mylist]').forEach(b=>b.addEventListener('click',()=>openMyList(b.dataset.mylist)));
 
 // ===== 상세 + 후기 (한 창) =====
 const fmtDate=d=>new Date(d).toLocaleDateString('ko-KR',{timeZone:'Asia/Seoul'});
@@ -112,7 +118,7 @@ $('#detailDialog').addEventListener('click',async e=>{const save=e.target.closes
  if(e.target.closest('[data-detail-reviews]'))return $('#reviewHeading')?.scrollIntoView({behavior:'smooth',block:'start'});
  if(e.target.closest('[data-login]')){$('#detailDialog').close();return loginPrompt();}
  if(save){if(!state.user){$('#detailDialog').close();return loginPrompt();}save.disabled=true;try{const saved=!state.detail.saved;await request('/restaurants/'+state.detail.id+'/favorite',{method:'PUT',body:{saved}});toast(saved?'찜한 맛집에 저장했어요.':'찜 목록에서 삭제했어요.');await Promise.all([showDetail(state.detail.id,{reopen:false}),refreshSaved()]);}catch(err){toast(err.message);}finally{save.disabled=false;}}
- if(onMap){const r=state.detail;$('#detailDialog').close();const row=state.rows.find(x=>x.restaurantId===r.id);if(row){selectFromMarker(r.id);}else if(!showRestaurant(r)){return toast('지도를 불러온 뒤 위치를 확인할 수 있어요.');}if(isMobile())setView('map');$('#mapPanel').scrollIntoView({behavior:'smooth',block:'center'});}});
+ if(onMap){const r=state.detail;$('#detailDialog').close();$$('.list-modal[open]').forEach(d=>d.close());const row=state.rows.find(x=>x.restaurantId===r.id);if(row){selectRestaurant(r.id);}else if(!showRestaurant(r)){return toast('지도를 불러온 뒤 위치를 확인할 수 있어요.');}if(isMobile())setView('map');$('#mapPanel').scrollIntoView({behavior:'smooth',block:'center'});}});
 $('#reviewForm').addEventListener('submit',async e=>{e.preventDefault();if(!state.user){$('#detailDialog').close();loginPrompt();return;}const button=e.submitter;button.disabled=true;try{await request('/restaurants/'+state.detailId+'/reviews',{method:'POST',body:{rating:Number($('#rating').value),comment:$('#comment').value}});await showDetail(state.detailId,{reopen:false});await Promise.all([load({keep:true}),loadMine()]);toast('후기를 저장했어요.');}catch(err){$('#reviewError').textContent=err.message;}finally{button.disabled=false;}});
 $('#deleteReview').addEventListener('click',async e=>{if(!confirm('내 후기를 삭제할까요?'))return;const button=e.currentTarget;button.disabled=true;try{await request('/restaurants/'+state.detailId+'/reviews',{method:'DELETE',body:{}});$('#reviewForm').reset();await showDetail(state.detailId,{reopen:false});await Promise.all([load({keep:true}),loadMine()]);toast('후기를 삭제했어요.');}catch(err){$('#reviewError').textContent=err.message;}finally{button.disabled=false;}});
 
@@ -121,25 +127,31 @@ $$('[data-close]').forEach(b=>b.addEventListener('click',()=>$('#'+b.dataset.clo
 $$('dialog').forEach(d=>{d.addEventListener('close',()=>{lastFocused?.focus();if(d.id==='detailDialog'){state.detailId=null;if(state.user)loadMine(['recent']);}});d.addEventListener('click',e=>{const rect=d.getBoundingClientRect();if(e.target===d&&(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom))d.close();});});
 
 // ===== 상단 메뉴: 해당 섹션으로 부드럽게 스크롤 =====
-$$('[data-nav]').forEach(a=>a.addEventListener('click',e=>{let target=document.getElementById(a.dataset.nav);if(!target)return;if(target.hidden)target=$('#favorites');e.preventDefault();target.scrollIntoView({behavior:'smooth',block:'start'});history.replaceState(null,'','#'+target.id);$('#mainNav').classList.remove('open');$('#menuToggle').setAttribute('aria-expanded','false');}));
+$$('[data-nav]').forEach(a=>a.addEventListener('click',e=>{const target=document.getElementById(a.dataset.nav);if(!target)return;e.preventDefault();target.scrollIntoView({behavior:'smooth',block:'start'});history.replaceState(null,'','#'+target.id);$('#mainNav').classList.remove('open');$('#menuToggle').setAttribute('aria-expanded','false');}));
 $('#menuToggle').addEventListener('click',()=>{const opened=$('#mainNav').classList.toggle('open');$('#menuToggle').setAttribute('aria-expanded',String(opened));});
-// 스크롤 위치에 맞춰 현재 보고 있는 섹션의 메뉴를 강조합니다.
-if('IntersectionObserver' in window){const navTargets=['recommend','favorites','recent'].map(id=>document.getElementById(id)).filter(Boolean);const visible=new Map();const io=new IntersectionObserver(entries=>{entries.forEach(en=>visible.set(en.target.id,en.isIntersecting?en.intersectionRatio:0));const best=[...visible].sort((a,b)=>b[1]-a[1])[0];if(!best||best[1]===0)return;$$('[data-nav]').forEach(a=>{if(a.dataset.nav===best[0])a.setAttribute('aria-current','true');else a.removeAttribute('aria-current');});},{rootMargin:'-90px 0px -40% 0px',threshold:[0,.1,.25,.5,.75,1]});navTargets.forEach(t=>io.observe(t));}
 
 // ===== 검색 조건 =====
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();load();});
+$('#keywordForm').addEventListener('submit',e=>{e.preventDefault();load();$('#results').scrollIntoView({behavior:'smooth',block:'start'});});
+$('#keyword').addEventListener('input',()=>{$('#keywordClear').hidden=!$('#keyword').value;});
 $('#keyword').addEventListener('search',()=>{if(!$('#keyword').value)load();});
+function clearKeyword(){$('#keyword').value='';load();}
+$('#keywordClear').addEventListener('click',()=>{clearKeyword();$('#keyword').focus();});
+$('#keywordChip').addEventListener('click',e=>{if(e.target.closest('[data-keyword-clear]'))clearKeyword();});
 $$('[data-budget]').forEach(b=>b.addEventListener('click',()=>{setBudget(Number(b.dataset.budget));load();}));
 $$('[data-category]').forEach(b=>b.addEventListener('click',()=>{state.category=b.dataset.category;$$('[data-category]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b));});load();}));
 $$('[data-sort]').forEach(b=>b.addEventListener('click',()=>{state.sort=b.dataset.sort;$$('[data-sort]').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b));});load();}));
 
 // 카드 클릭: 추천 목록은 지도에서 위치 보기, 찜/최근 목록은 상세 열기
-function activateCard(card){if(card.closest('[data-list]')?.dataset.list==='search')selectRow(state.rows.find(r=>cardKey(r)===card.dataset.key));else showDetail(Number(card.dataset.focus));}
+// 추천 목록에서 메뉴를 고르면 행동 기록(click)을 남깁니다. (심층 추천의 개인 취향에 사용)
+function trackClick(row){if(state.user&&row?.menuId)request('/interactions',{method:'POST',body:{restaurantId:row.restaurantId,menuId:row.menuId,type:'click'}}).catch(()=>{});}
+function activateCard(card){if(card.closest('[data-list]')?.dataset.list==='search'){const row=state.rows.find(r=>cardKey(r)===card.dataset.key);trackClick(row);selectRow(row);}else showDetail(Number(card.dataset.focus));}
 const rowsOf=list=>list==='search'?state.rows:state[list];
 $$('[data-list]').forEach(el=>{
  el.addEventListener('keydown',e=>{const card=e.target.closest?.('[data-focus]');if(card&&e.target===card&&(e.key==='Enter'||e.key===' ')){e.preventDefault();activateCard(card);}});
  el.addEventListener('click',async e=>{const btn=e.target.closest('button');if(!btn){const card=e.target.closest('[data-focus]');if(card)activateCard(card);return;}
   if(btn.hasAttribute('data-login'))return loginPrompt();
+  if(btn.hasAttribute('data-close-list')){btn.closest('dialog')?.close();return $('#recommend').scrollIntoView({behavior:'smooth',block:'start'});}
   if(btn.hasAttribute('data-retry'))return el.dataset.list==='search'?retrySearch():loadMine([el.dataset.list]);
   if(btn.dataset.detail)return showDetail(Number(btn.dataset.detail));
   if(btn.dataset.save){if(!state.user)return loginPrompt();btn.disabled=true;try{const id=Number(btn.dataset.save);const row=rowsOf(el.dataset.list).find(r=>(r.restaurantId??r.id)===id);await request('/restaurants/'+id+'/favorite',{method:'PUT',body:{saved:!row.saved}});toast(row.saved?'찜 목록에서 삭제했어요.':'찜한 맛집에 저장했어요.');await refreshSaved();}catch(err){toast(err.message);btn.disabled=false;}}});
@@ -149,6 +161,7 @@ async function refreshSaved(){await loadMine();const ids=new Set(state.favorites
 
 // ===== 시작 =====
 try{state.user=(await request('/auth/me')).user;account();}catch(e){toast(e.message);}
-const mapPromise=initializeMap({onMarker:selectFromMarker,onDetail:id=>showDetail(id)});
-await Promise.all([load(),loadMine()]);
-if(await mapPromise){setMarkers(state.rows);const row=state.rows.find(r=>cardKey(r)===state.selectedKey)||state.rows[0];if(row)showRestaurant(row);}
+// 지도는 처음에 경인여자대학교에 마커 1개만 표시합니다.
+const mapPromise=initializeMap({onDetail:id=>showDetail(id)});
+await Promise.all([load(),loadMine(),initDeep({user:state.user,showDetail:id=>showDetail(id),loginPrompt})]);
+await mapPromise;
