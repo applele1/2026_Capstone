@@ -1,17 +1,22 @@
-export const categories={all:'전체',korean:'한식',japanese:'일식',chinese:'중식',snack:'분식',western:'양식',cafe:'카페'};
-// DB의 세부 카테고리(예: '칼국수', '햄버거/치킨')를 화면의 카테고리 버튼(한식/일식/...)으로 묶습니다.
+export const categories={all:'전체',korean:'한식',noodle:'면',ricebowl:'덮밥',japanese:'일식',chinese:'중식',snack:'분식',fastfood:'패스트푸드',salad:'샐러드&포케',western:'양식'};
+// 버튼에는 없지만 기존 데이터에 남아 있을 수 있는 카테고리 이름 표시용입니다. ('전체'에서만 보입니다)
+const extraLabels={cafe:'카페'};
+// DB의 세부 카테고리(예: '칼국수', '햄버거/치킨')를 화면의 카테고리 버튼(한식/면/덮밥/...)으로 묶습니다.
 // 새 카테고리를 DB에 추가하면 여기에도 한 줄 추가하세요. 없는 값은 '전체'에서만 보입니다.
 const categoryGroups={
- korean:['한식','국수/냉면','칼국수','냉면','국수/칼국수','해장국/순대국','순대국','닭곰탕','곰탕','고기뷔페','닭갈비','해물탕','국밥','백반','묵밥/한식','도시락','보쌈','추어탕'],
- japanese:['일식','초밥','돈까스','덮밥','육회/연어'],
- chinese:['중식','마라탕'],
- snack:['분식','떡볶이','토스트'],
- western:['양식','햄버거','햄버거/치킨','샌드위치','피자','경양식/돈까스','포케'],
- cafe:['카페']
+ korean:['한식','해장국/순대국','순대국','닭곰탕','곰탕','고기뷔페','닭갈비','해물탕','국밥','백반','묵밥/한식','도시락','보쌈','추어탕','찌개','김치찌개'],
+ noodle:['면','국수','국수/냉면','칼국수','냉면','국수/칼국수','라멘','라면','우동','쌀국수','짬뽕'],
+ ricebowl:['덮밥','덮밥/돈부리','돈부리','비빔밥','카레'],
+ japanese:['일식','초밥','돈까스','육회/연어','회'],
+ chinese:['중식','마라탕','짜장면','마라샹궈'],
+ snack:['분식','떡볶이','토스트','김밥'],
+ fastfood:['패스트푸드','햄버거','햄버거/치킨','치킨','피자','샌드위치','핫도그'],
+ salad:['샐러드&포케','샐러드','포케','샐러드/포케'],
+ western:['양식','경양식/돈까스','파스타','스테이크','리조또']
 };
 const groupByName=Object.fromEntries(Object.entries(categoryGroups).flatMap(([key,names])=>names.map(n=>[n,key])));
 export const categoryGroup=category=>Object.hasOwn(categories,category)?category:(groupByName[category]||'etc');
-export const categoryLabel=category=>categories[category]||category||'';
+export const categoryLabel=category=>categories[category]||extraLabels[category]||category||'';
 export function distanceMeters(a,b){const rad=x=>x*Math.PI/180;const dlat=rad(b.lat-a.lat),dlng=rad(b.lng-a.lng);const h=Math.sin(dlat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dlng/2)**2;return Math.round(6371000*2*Math.asin(Math.sqrt(Math.min(1,h))));}
 export function summarize(r,school){const reviews=r.reviews||[];const {reviews:_,...rest}=r;return {...rest,categoryName:categoryLabel(r.category),distance:distanceMeters(school,r),rating:reviews.length?Math.round(reviews.reduce((s,v)=>s+v.rating,0)/reviews.length*10)/10:null,reviewCount:reviews.length};}
 const scoreOf=(price,budget,distance)=>Math.round(100*(.6*(1-price/budget)+.4*(1-Math.min(distance/1500,1))));

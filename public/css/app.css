@@ -2,3 +2,8 @@ body{font-size:16px}button,a,input,textarea,select{touch-action:manipulation}but
 [hidden]{display:none!important}
 
 /* 메뉴 단위 목록 카드 */.menu-card{cursor:pointer}.menu-card.selected{border-color:#f0a33a;box-shadow:0 0 0 2px #ffd28a inset;background:#fffaf0}.menu-card .restaurant-info h3{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}.menu-price{color:#c46100;font-size:16px}.menu-place{font-size:14px;font-weight:700;color:#6d4638;margin-bottom:2px}
+
+/* 예산: 500원 단위 −/+ 버튼 */.budget-input{padding:0 6px}.budget-step{flex-shrink:0;width:36px;height:36px;border:1px solid #eadfd2;border-radius:10px;background:#fff;color:#a85700;font-size:20px;font-weight:900;line-height:1;cursor:pointer}.budget-step:hover{background:#fff4dd;border-color:#ffbd54}.budget-help{display:block;margin-top:6px;font-size:12px;color:#75665b}
+/* 추천 목록 5개씩 + 더 보기 */.result-column{display:flex;flex-direction:column;gap:12px;min-width:0}.more-btn{align-self:center;padding:11px 20px;font-size:14px;cursor:pointer}.more-btn:hover{border-color:#ffbd54;color:#a85700}
+/* 찜한 맛집 · 최근 본 식당: 한 페이지 스크롤 섹션 */#recommend,#favorites,#recent{scroll-margin-top:96px}.my-section{padding-top:40px;padding-bottom:40px;border-top:1px solid var(--line)}.my-list{max-height:none;overflow:visible;padding-right:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}.my-list>.empty-state{grid-column:1/-1}@media(max-width:900px){.my-list{grid-template-columns:1fr}}@media(max-width:650px){#recommend,#favorites,#recent{scroll-margin-top:80px}}
+/* 5개씩 보여주므로 내부 스크롤 없이 펼치고, 지도는 스크롤 시 따라오도록 고정 */#resultList{max-height:none;overflow:visible;padding-right:0}.result-layout{align-items:start}.map-panel{position:sticky;top:100px}@media(max-width:900px){.map-panel{position:static}}
