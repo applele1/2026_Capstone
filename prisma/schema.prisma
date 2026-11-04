@@ -6,6 +6,47 @@ datasource db {
  url = env("DATABASE_URL")
  directUrl = env("DIRECT_URL")
 }
+
+// ===== 식당 데이터: 엑셀(restaurants / menus / categories / menu_categories)과 같은 구조 =====
+model Restaurant {
+ id Int @id @default(autoincrement())
+ name String
+ address String
+ lat Float
+ lng Float
+ menus Menu[]
+ reviews Review[]
+ favorites Favorite[]
+ recentViews RecentView[]
+ @@map("restaurants")
+}
+model Menu {
+ id Int @id @default(autoincrement())
+ restaurantId Int @map("restaurant_id")
+ restaurant Restaurant @relation(fields:[restaurantId],references:[id],onDelete:Cascade)
+ name String
+ price Int
+ categories MenuCategory[]
+ @@index([restaurantId,price])
+ @@map("menus")
+}
+model Category {
+ id Int @id @default(autoincrement())
+ name String @unique
+ menus MenuCategory[]
+ @@map("categories")
+}
+// 메뉴 하나가 여러 카테고리에 속할 수 있습니다. (예: 돈까스덮밥 → 덮밥 + 일식)
+model MenuCategory {
+ menuId Int @map("menu_id")
+ categoryId Int @map("category_id")
+ menu Menu @relation(fields:[menuId],references:[id],onDelete:Cascade)
+ category Category @relation(fields:[categoryId],references:[id],onDelete:Cascade)
+ @@id([menuId,categoryId])
+ @@map("menu_categories")
+}
+
+// ===== 회원 데이터 =====
 model User {
  id Int @id @default(autoincrement())
  email String @unique
@@ -17,28 +58,6 @@ model User {
  recentViews RecentView[]
  sessions Session[]
 }
-model Restaurant {
- id Int @id @default(autoincrement())
- name String
- category String
- address String
- lat Float
- lng Float
- emoji String @default("🍽️")
- isSample Boolean @default(false) @map("is_sample")
- menus Menu[]
- reviews Review[]
- favorites Favorite[]
- recentViews RecentView[]
-}
-model Menu {
- id Int @id @default(autoincrement())
- restaurantId Int @map("restaurant_id")
- restaurant Restaurant @relation(fields:[restaurantId],references:[id],onDelete:Cascade)
- name String
- price Int
- @@index([restaurantId,price])
-}
 model Review {
  id Int @id @default(autoincrement())
  userId Int @map("user_id")
@@ -48,6 +67,7 @@ model Review {
  rating Int
  comment String @db.VarChar(300)
  createdAt DateTime @default(now()) @map("created_at")
+ updatedAt DateTime? @map("updated_at")
  @@unique([userId,restaurantId])
 }
 model Favorite {
