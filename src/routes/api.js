@@ -1,0 +1,11 @@
+import {Router} from 'express';
+import {rateLimit} from 'express-rate-limit';
+import * as auth from '../controllers/authController.js';
+import * as restaurant from '../controllers/restaurantController.js';
+import * as map from '../controllers/mapController.js';
+import {loadUser,requireUser,sameOrigin} from '../middleware/auth.js';
+export const api=Router();api.use(sameOrigin,loadUser);
+const authLimit=rateLimit({windowMs:15*60000,limit:30,standardHeaders:'draft-8',legacyHeaders:false,message:{message:'요청이 많습니다. 잠시 후 다시 시도해 주세요.'}});
+api.get('/auth/me',auth.me);api.post('/auth/signup',authLimit,auth.signup);api.post('/auth/login',authLimit,auth.login);api.post('/auth/logout',auth.logout);
+api.get('/restaurants',restaurant.list);api.get('/restaurants/:id',restaurant.detail);api.put('/restaurants/:id/favorite',requireUser,restaurant.favorite);api.post('/restaurants/:id/reviews',requireUser,restaurant.review);
+api.get('/me/favorites',requireUser,restaurant.favorites);api.get('/me/recent',requireUser,restaurant.recent);api.get('/map/config',map.mapConfig);api.get('/map/places',requireUser,rateLimit({windowMs:60000,limit:15}),map.searchPlaces);
