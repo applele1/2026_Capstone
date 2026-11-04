@@ -1,9 +1,13 @@
-import 'dotenv/config';
-import path from 'node:path';
-export const config = {
- port: Number(process.env.PORT || 3000), production: process.env.NODE_ENV === 'production',
- storage: process.env.STORAGE_MODE || 'demo', dataPath: path.resolve(process.env.DEMO_DATA_PATH || './data/demo.json'),
- kakaoJsKey: process.env.KAKAO_MAP_JS_KEY || '', kakaoRestKey: process.env.KAKAO_REST_API_KEY || '',
- school: { name:'경인여자대학교', lat:Number(process.env.SCHOOL_LAT || 37.5505), lng:Number(process.env.SCHOOL_LNG || 126.7223) }
+const SCHOOL = {
+  name: '경인여자대학교',
+  lat: Number(process.env.SCHOOL_LAT) || 37.5484997,
+  lng: Number(process.env.SCHOOL_LNG) || 126.7228094
 };
-if (!['demo','postgres'].includes(config.storage)) throw new Error('STORAGE_MODE는 demo 또는 postgres여야 합니다.');
+
+const CATEGORIES = ['all', '한식', '일식', '중식', '분식', '양식', '패스트푸드', '면', '덮밥', '샐러드&포케'];
+
+module.exports = {
+  PORT: Number(process.env.PORT) || 3000,
+  SCHOOL,
+  CATEGORIES
+};

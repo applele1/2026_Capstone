@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="밥잇 - 경인여대생을 위한 예산·거리 기반 식사 메뉴 추천 서비스" />
+  <title>밥잇 | 경인여대생을 위한 맛집 추천</title>
+  <link rel="icon" href="assets/bapit-logo.png" />
+  <!-- Pretendard: SIL Open Font License 1.1 (https://github.com/orioncactus/pretendard) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="style.css?v=map-in-section" />
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="#home" aria-label="밥잇 홈">
+        <img src="assets/bapit-logo.png" alt="밥잇 로고" />
+        <span class="brand-copy"><strong>밥잇</strong><small>경인여대생 맛집 추천</small></span>
+      </a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="#home">홈</a>
+        <a href="#recommend">맛집 찾기</a>
+        <a href="favorites.html">찜한 맛집</a>
+        <a href="mypage.html" id="mypageLink" hidden>마이페이지</a>
+        <button class="login-btn" id="loginOpen">로그인</button>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기">☰</button>
+    </header>
+
+    <main>
+      <section id="home" class="hero section">
+        <div class="hero-copy">
+          <div class="eyebrow"><span>🍚</span> 오늘 뭐 먹지? 밥잇이 찾아줄게요!</div>
+          <h1>내 예산에 딱 맞는<br /><em>학교 앞 맛집</em>을 찾아보세요.</h1>
+          <p>예산, 카테고리, 입맛과 거리를 고르면<br class="desktop-only" /> 맞는 메뉴와 가까운 식당을 1위부터 보여드려요.</p>
+          <div class="hero-actions">
+            <a href="#recommend" class="primary-btn">내 예산으로 맛집 찾기 <span>→</span></a>
+            <button class="ghost-btn" id="quickLogin">회원가입하고 찜하기</button>
+          </div>
+        </div>
+        <div class="hero-card" aria-label="서비스 미리보기">
+          <div class="hero-bubble bubble-one">오늘은 8,000원!</div>
+          <div class="hero-bubble bubble-two">학교에서 5분 🚶</div>
+          <div class="phone-card">
+            <div class="phone-top">
+              <span class="phone-brand"><img src="assets/bapit-logo.png" alt="" /><b>밥잇</b></span>
+              <span class="phone-login">로그인</span>
+            </div>
+            <div class="mini-budget"><span>한 끼 예산</span><strong>10,000원 이하</strong></div>
+            <div class="mini-cats"><span class="on">전체</span><span>분식</span><span>한식</span><span>일식</span></div>
+            <div class="mini-map"><div class="map-road road-a"></div><div class="map-road road-b"></div><div class="mini-pin">●</div><div class="mini-school">경인여대</div></div>
+            <div class="mini-result">
+              <div class="mini-thumb">🍢<span class="mini-rank">1</span></div>
+              <div><b>막뚱이김밥 <em>분식</em></b><span>106m · 도보 2분</span></div>
+              <strong>3,000원</strong>
+            </div>
+            <div class="mini-result">
+              <div class="mini-thumb warm">🍚<span class="mini-rank">2</span></div>
+              <div><b>우리집분식 <em>분식</em></b><span>327m · 도보 5분</span></div>
+              <strong>3,000원</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature-strip section-tight">
+        <div><span class="feature-icon">₩</span><div><b>예산 맞춤</b><small>내가 정한 금액 안에서</small></div></div>
+        <div><span class="feature-icon">⌖</span><div><b>거리 반영</b><small>학교에서 가까운 곳부터</small></div></div>
+        <div><span class="feature-icon">★</span><div><b>학생 평점</b><small>실제 이용자 평가 참고</small></div></div>
+        <div><span class="feature-icon">♡</span><div><b>즐겨찾기</b><small>다시 보고 싶은 식당 저장</small></div></div>
+      </section>
+
+      <section id="recommend" class="finder section">
+        <div class="section-heading">
+          <div><span class="eyebrow">STEP 01</span><h2>내 조건에 맞는 <em>맛집 찾기</em></h2></div>
+        </div>
+        <div class="finder-card">
+          <div class="field-group budget-field">
+            <div class="budget-label-row">
+              <label for="budget">한 끼 예산</label>
+              <button type="button" class="reset-btn" id="resetFilters">초기화</button>
+            </div>
+            <div class="budget-input">
+              <span>₩</span>
+              <input id="budget" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" value="10000" />
+              <span>원 이하</span>
+              <div class="budget-stepper">
+                <button type="button" id="budgetUp" aria-label="1,000원 올리기">▲</button>
+                <button type="button" id="budgetDown" aria-label="1,000원 내리기">▼</button>
+              </div>
+            </div>
+            <div class="budget-chips" id="budgetChips">
+              <button type="button" data-budget="6000">6천원</button><button type="button" data-budget="8000">8천원</button><button type="button" class="active" data-budget="10000">1만원</button><button type="button" data-budget="15000">1.5만원</button>
+            </div>
+          </div>
+          <div class="field-group category-field">
+            <label>음식 카테고리</label>
+            <div class="category-grid" id="categoryGrid">
+              <button class="category active" data-category="all"><span>🍽️</span>전체</button>
+              <button class="category" data-category="한식"><span>🍚</span>한식</button>
+              <button class="category" data-category="일식"><span>🍣</span>일식</button>
+              <button class="category" data-category="중식"><span>🥟</span>중식</button>
+              <button class="category" data-category="분식"><span>🍢</span>분식</button>
+              <button class="category" data-category="양식"><span>🍝</span>양식</button>
+              <button class="category" data-category="패스트푸드"><span>🍔</span>패스트푸드</button>
+              <button class="category" data-category="면"><span>🍜</span>면</button>
+              <button class="category" data-category="덮밥"><span>🍛</span>덮밥</button>
+              <button class="category" data-category="샐러드&amp;포케"><span>🥗</span>샐러드&amp;포케</button>
+            </div>
+          </div>
+          <div class="taste-row">
+            <div class="field-group">
+              <label>맵기</label>
+              <div class="taste-chips" id="spiceChips">
+                <button type="button" class="active" data-spice="any">상관없음</button>
+                <button type="button" data-spice="0">안 매움</button>
+                <button type="button" data-spice="1">약간 매움</button>
+                <button type="button" data-spice="2">보통 매움</button>
+                <button type="button" data-spice="3">매움</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>먹고 싶은 특징</label>
+              <div class="taste-chips" id="traitChips">
+                <button type="button" data-trait="시원함">시원함</button>
+                <button type="button" data-trait="따뜻한">따뜻한</button>
+                <button type="button" data-trait="바삭한">바삭한</button>
+                <button type="button" data-trait="건강한">건강한</button>
+                <button type="button" data-trait="간편한">간편한</button>
+              </div>
+            </div>
+            <div class="field-group">
+              <label>학교에서의 거리</label>
+              <div class="taste-chips" id="walkChips">
+                <button type="button" class="active" data-walk="any">상관없음</button>
+                <button type="button" data-walk="10">도보 10분 이내</button>
+                <button type="button" data-walk="15">도보 15분 이내</button>
+              </div>
+            </div>
+          </div>
+          <button class="search-btn" id="searchBtn">조건에 맞는 맛집 찾기 <span>→</span></button>
+        </div>
+      </section>
+
+      <section class="recommend-section section" id="results">
+        <div class="section-heading results-heading">
+          <div><span class="eyebrow">STEP 02</span><h2><em>추천 맛집</em>을 확인해 보세요</h2></div>
+          <div class="result-controls"><button class="sort random-sort" data-sort="random" aria-describedby="randomTip">랜덤 추천<span class="sort-tip" id="randomTip" role="tooltip">해당 추천 기능은 오늘 무엇을 먹을지 고민하는 사용자를 위한 랜덤 추천 기능입니다.</span></button><button class="sort active" data-sort="recommend">추천순</button><button class="sort" data-sort="distance">거리순</button><button class="sort" data-sort="rating">평점순</button><button class="sort" data-sort="price">가격순</button></div>
+        </div>
+        <div class="result-layout">
+          <div class="result-list" id="resultList"></div>
+          <div class="map-sticky">
+          <div class="map-panel">
+            <div id="kakaoMap" class="map-canvas">
+              <div class="map-grid"></div><div class="map-road r1"></div><div class="map-road r2"></div><div class="map-road r3"></div>
+              <div class="map-school"><span>🏫</span><b>경인여자대학교</b></div>
+              <div class="map-pin p1">🍚</div><div class="map-pin p2">🍜</div><div class="map-pin p3">🍱</div><div class="map-pin p4">☕</div>
+              <div class="map-label l1">맛집거리</div><div class="map-label l2">학교 앞</div>
+              <div class="map-note">Kakao Map 연동 영역<br /><small>API 키를 등록하면 실제 지도로 표시됩니다.</small></div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer"><div class="footer-brand"><img src="assets/bapit-logo.png" alt="" /><b>밥잇</b></div><p>경인여대생을 위한 식사 메뉴 추천 서비스 · Capstone Design 2026</p><div><a href="#home">홈</a><a href="#recommend">맛집 찾기</a><a href="favorites.html">찜한 맛집</a></div></footer>
+  </div>
+
+  <div class="modal-backdrop" id="loginModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+      <button class="modal-close" id="loginClose" aria-label="닫기">×</button>
+      <img src="assets/bapit-logo.png" class="modal-logo" alt="밥잇" />
+      <span class="eyebrow">WELCOME TO BAPIT</span><h2 id="loginTitle">밥잇에 오신 것을<br /><em>환영해요!</em></h2><p>로그인하면 찜하기와 평점 등록을 이용할 수 있어요.</p>
+      <form id="loginForm" novalidate><label>이메일<input id="loginEmail" type="text" inputmode="email" autocomplete="email" placeholder="example@kiwu.ac.kr" /><small class="field-error" id="emailError" hidden></small></label><label id="nicknameField" hidden>닉네임<input id="signupNickname" maxlength="20" placeholder="닉네임 (20자 이내)" /><small class="field-error" id="nicknameError" hidden></small></label><label>비밀번호<input id="loginPassword" type="password" autocomplete="current-password" placeholder="비밀번호 (6자 이상)" /><small class="field-error" id="passwordError" hidden></small></label><label id="passwordConfirmField" hidden>비밀번호 확인<input id="signupPasswordConfirm" type="password" autocomplete="new-password" placeholder="비밀번호를 한 번 더 입력해 주세요." /><small class="field-error" id="passwordConfirmError" hidden></small></label><button class="primary-btn full" type="submit" id="loginSubmit">로그인 <span>→</span></button></form>
+      <button class="signup-link" id="signupDemo">아직 회원이 아니라면 <b>회원가입</b></button>
+      <small class="demo-note" id="authNote">회원 인증은 Node.js/Express 서버를 거쳐 Supabase Auth로 처리됩니다.</small>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="reviewModal" hidden>
+    <div class="review-modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+      <button class="modal-close" id="reviewClose" aria-label="후기 창 닫기">×</button>
+      <div class="review-modal-head">
+        <span class="eyebrow">STUDENT REVIEW</span>
+        <h2 id="reviewTitle">식당 후기</h2>
+        <p id="reviewRestaurantMeta">학생들의 후기를 확인해 보세요.</p>
+      </div>
+      <div class="review-summary" id="reviewSummary"></div>
+      <div class="review-list" id="reviewList"></div>
+      <div class="review-form-wrap">
+        <div class="review-form-title"><b>나도 후기 남기기</b><span>별점과 한 줄 후기를 작성해 주세요.</span></div>
+        <form id="reviewForm">
+          <label>별점 <span class="required">*</span></label>
+          <div class="star-picker" id="starPicker" role="radiogroup" aria-label="별점 선택">
+            <button type="button" data-star="1" aria-label="1점">★</button><button type="button" data-star="2" aria-label="2점">★</button><button type="button" data-star="3" aria-label="3점">★</button><button type="button" data-star="4" aria-label="4점">★</button><button type="button" data-star="5" aria-label="5점">★</button>
+          </div>
+          <label for="reviewNickname">닉네임 <small class="field-hint">마이페이지에서 바꿀 수 있어요</small></label>
+          <input id="reviewNickname" placeholder="로그인하면 내 닉네임이 표시돼요" readonly />
+          <label for="reviewText">리뷰 <span class="required">*</span></label>
+          <textarea id="reviewText" maxlength="300" rows="4" placeholder="메뉴, 가격, 맛, 분위기 등을 자유롭게 남겨주세요." required></textarea>
+          <div class="review-form-bottom"><small>작성한 후기는 Supabase 데이터베이스에 저장되어 다른 학생들에게도 보여요.</small><button class="primary-btn" type="submit">리뷰 등록 <span>→</span></button></div>
+        </form>
+        <p class="review-once" id="reviewOnce" hidden>이 식당에는 이미 후기를 남겼어요. 수정은 마이페이지에서 할 수 있어요.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="common.js"></script>
+  <script src="app.js?v=map-grow"></script>
+</body>
+</html>

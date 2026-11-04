@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>찜한 맛집 | 밥잇</title>
+  <link rel="icon" href="assets/bapit-logo.png" />
+  <!-- Pretendard: SIL Open Font License 1.1 (https://github.com/orioncactus/pretendard) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="밥잇 홈">
+        <img src="assets/bapit-logo.png" alt="밥잇 로고" />
+        <span class="brand-copy"><strong>밥잇</strong><small>경인여대생 맛집 추천</small></span>
+      </a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="index.html">홈</a>
+        <a href="index.html#recommend">맛집 찾기</a>
+        <a href="favorites.html" aria-current="page">찜한 맛집</a>
+        <a href="mypage.html" id="mypageLink" hidden>마이페이지</a>
+        <button class="login-btn" id="logoutBtn" hidden>로그아웃</button>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기">☰</button>
+    </header>
+
+    <main class="mypage">
+      <section class="empty-state mypage-guest" id="guestState" hidden>
+        <span>🔒</span>
+        <p>로그인하면 찜한 맛집을 볼 수 있어요.</p>
+        <a class="primary-btn" href="index.html#login">로그인 / 회원가입 <span>→</span></a>
+      </section>
+
+      <div id="favoritesContent" hidden>
+        <section class="mypage-hero section-tight">
+          <span class="eyebrow">찜한 맛집</span>
+          <h1><em id="profileName"></em> 님의 찜한 맛집</h1>
+          <p id="favoriteSummary"></p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <h2>저장한 맛집 <small id="favoriteCount"></small></h2>
+            <p>찜 해제는 <a href="mypage.html#favorites">마이페이지의 찜한 맛집 관리</a>에서 할 수 있어요.</p>
+          </div>
+          <div class="my-list" id="favoriteList"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer"><div class="footer-brand"><img src="assets/bapit-logo.png" alt="" /><b>밥잇</b></div><p>경인여대생을 위한 식사 메뉴 추천 서비스 · Capstone Design 2026</p><div><a href="index.html">홈</a><a href="index.html#recommend">맛집 찾기</a><a href="favorites.html">찜한 맛집</a><a href="mypage.html">마이페이지</a></div></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="common.js"></script>
+  <script src="favorites.js"></script>
+</body>
+</html>

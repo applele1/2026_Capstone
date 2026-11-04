@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>마이페이지 | 밥잇</title>
+  <link rel="icon" href="assets/bapit-logo.png" />
+  <!-- Pretendard: SIL Open Font License 1.1 (https://github.com/orioncactus/pretendard) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="site-shell">
+    <header class="topbar">
+      <a class="brand" href="index.html" aria-label="밥잇 홈">
+        <img src="assets/bapit-logo.png" alt="밥잇 로고" />
+        <span class="brand-copy"><strong>밥잇</strong><small>경인여대생 맛집 추천</small></span>
+      </a>
+      <nav class="nav" aria-label="주요 메뉴">
+        <a href="index.html">홈</a>
+        <a href="index.html#recommend">맛집 찾기</a>
+        <a href="favorites.html">찜한 맛집</a>
+        <a href="mypage.html" aria-current="page">마이페이지</a>
+        <button class="login-btn" id="logoutBtn" hidden>로그아웃</button>
+      </nav>
+      <button class="menu-toggle" id="menuToggle" aria-label="메뉴 열기">☰</button>
+    </header>
+
+    <main class="mypage">
+      <section class="empty-state mypage-guest" id="guestState" hidden>
+        <span>🔒</span>
+        <p>로그인하면 마이페이지를 이용할 수 있어요.</p>
+        <a class="primary-btn" href="index.html#login">로그인 / 회원가입 <span>→</span></a>
+      </section>
+
+      <div id="memberContent" hidden>
+        <section class="profile-box">
+          <div class="profile-head">
+            <img class="profile-logo" src="assets/bapit-logo.png" alt="밥잇 로고" />
+            <div>
+              <span class="eyebrow">MY PAGE</span>
+              <h1><em id="profileName"></em> 님의 밥잇</h1>
+              <p id="profileMeta"></p>
+            </div>
+          </div>
+          <nav class="profile-links" aria-label="마이페이지 메뉴">
+            <a href="#account" data-panel="account">계정 정보</a>
+            <a href="#favorites" data-panel="favorites">찜한 맛집 관리</a>
+            <a href="#reviews" data-panel="reviews">후기 관리</a>
+            <a href="#recent" data-panel="recent">최근 본 식당</a>
+          </nav>
+        </section>
+
+        <div id="panelAccount" class="member-panels mypage-panel" hidden>
+          <section class="panel">
+            <div class="panel-head"><h2>기본 정보</h2><p>이메일은 바꿀 수 없고, 닉네임은 후기에도 함께 반영돼요.</p></div>
+            <div class="readonly-field"><span>이메일</span><input id="emailInput" readonly /></div>
+            <form class="stack-form" id="nicknameForm">
+              <label>닉네임<input id="nicknameInput" maxlength="20" required /></label>
+              <button class="primary-btn" type="submit">닉네임 저장</button>
+            </form>
+          </section>
+          <section class="panel">
+            <div class="panel-head"><h2>비밀번호 변경</h2><p>현재 비밀번호를 확인한 뒤 새 비밀번호로 바꿔요.</p></div>
+            <form class="stack-form" id="passwordForm">
+              <label>현재 비밀번호<input id="currentPassword" type="password" autocomplete="current-password" required minlength="6" /></label>
+              <label>새 비밀번호<input id="newPassword" type="password" autocomplete="new-password" required minlength="6" /></label>
+              <label>새 비밀번호 확인<input id="confirmPassword" type="password" autocomplete="new-password" required minlength="6" /></label>
+              <button class="primary-btn" type="submit">비밀번호 변경</button>
+            </form>
+          </section>
+          <section class="panel danger-zone">
+            <div class="panel-head">
+              <h2>회원 탈퇴</h2>
+              <p>탈퇴하면 계정과 함께 찜한 맛집, 작성한 후기가 모두 삭제되고 되돌릴 수 없어요.</p>
+            </div>
+            <form class="stack-form" id="withdrawForm">
+              <label>비밀번호 확인<input id="withdrawPassword" type="password" autocomplete="current-password" required /></label>
+              <button class="danger-btn" type="submit">탈퇴하기</button>
+            </form>
+          </section>
+        </div>
+
+        <section id="panelFavorites" class="panel mypage-panel" hidden>
+          <div class="panel-head"><h2>저장한 맛집 <small id="favoriteCount"></small></h2><p>더 이상 관심 없는 곳은 찜을 해제할 수 있어요.</p></div>
+          <div class="my-list" id="myFavorites"></div>
+          <button type="button" class="list-more" data-more="favorites" hidden>더보기</button>
+        </section>
+
+        <section id="panelReviews" class="panel mypage-panel" hidden>
+          <div class="panel-head"><h2>내가 쓴 후기 <small id="reviewCount"></small></h2><p>수정한 내용은 식당 후기에도 바로 반영돼요.</p></div>
+          <div class="my-list" id="myReviews"></div>
+          <button type="button" class="list-more" data-more="reviews" hidden>더보기</button>
+        </section>
+
+        <section id="panelRecent" class="panel mypage-panel" hidden>
+          <div class="panel-head"><h2>최근 본 식당 <small id="recentCount"></small></h2><p>추천 목록에서 고른 식당이 최근 순으로 모여요.</p></div>
+          <div class="my-list" id="recentList"></div>
+          <button type="button" class="list-more" data-more="recent" hidden>더보기</button>
+          <button class="ghost-btn" id="clearRecent" hidden type="button">기록 지우기</button>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer"><div class="footer-brand"><img src="assets/bapit-logo.png" alt="" /><b>밥잇</b></div><p>경인여대생을 위한 식사 메뉴 추천 서비스 · Capstone Design 2026</p><div><a href="index.html">홈</a><a href="index.html#recommend">맛집 찾기</a><a href="favorites.html">찜한 맛집</a><a href="mypage.html">마이페이지</a></div></footer>
+  </div>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="common.js"></script>
+  <script src="mypage.js"></script>
+</body>
+</html>
