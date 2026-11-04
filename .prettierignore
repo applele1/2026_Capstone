@@ -1,7 +1,0 @@
-node_modules/
-data/
-supabase/
-prisma/migrations/
-package-lock.json
-*.md
-*.ejs
