@@ -296,7 +296,7 @@
     const ranked = index < 3;
     return `
       <article class="result-card${open ? ' open' : ''}${r.id === state.selectedId ? ' selected' : ''}" data-id="${r.id}">
-        <div class="result-thumb">${categoryEmoji(r.category)}${ranked ? `<span class="rank">${index + 1}</span>` : ''}</div>
+        <div class="result-thumb">${categoryEmoji(r.category)}<span class="rank">${index + 1}</span></div>
         <div class="result-body">
           <div class="result-top">
             ${ranked ? `<span class="place">${index + 1}위</span>` : ''}<h3>${escapeHtml(r.name)}</h3><span class="tag">${escapeHtml(r.category || '')}</span>
@@ -493,9 +493,15 @@
       ? visible.filter((r) => r.id === state.selectedId)
       : visible;
     places.forEach((r) => {
+      const rank = start + visible.indexOf(r) + 1; // 카드 번호와 같은 순위 (다음 페이지는 4, 5, 6...)
       const position = new kakao.maps.LatLng(r.lat, r.lng);
-      const marker = new kakao.maps.Marker({ map: map.instance, position, title: r.name });
-      kakao.maps.event.addListener(marker, 'click', () => {
+
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'rank-marker' + (r.id === state.selectedId ? ' is-selected' : '');
+      el.textContent = rank;
+      el.title = r.name;
+      el.addEventListener('click', () => {
         const page = pageOf(r.id);
         if (page !== state.page) {
           state.page = page;
@@ -503,6 +509,14 @@
         }
         selectRestaurant(r.id);
         $(`.result-card[data-id="${r.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+
+      const marker = new kakao.maps.CustomOverlay({
+        map: map.instance,
+        position,
+        content: el,
+        yAnchor: 1,
+        clickable: true
       });
       map.markers.push(marker);
       bounds.extend(position);
