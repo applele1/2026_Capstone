@@ -69,9 +69,9 @@ function supabaseStore() {
       const rows = check(
         await admin
           .from('restaurants')
-          .select(`id, name, address, lat, lng, menus(${menuColumns}), reviews(rating)`)
+          .select(`id, name, address, lat, lng, walk_distance_m, walk_minutes, menus(${menuColumns}), reviews(rating)`)
       );
-      return rows.map(({ menus, reviews, ...r }) => {
+      return rows.map(({ menus, reviews, walk_distance_m, walk_minutes, ...r }) => {
         const restaurant = withCategories({
           ...r,
           menus: menus.map(({ menu_categories, ...m }) => {
@@ -80,9 +80,17 @@ function supabaseStore() {
           }),
           ratings: reviews.map((v) => v.rating)
         });
-        const sample = restaurant.menus.find((m) => Number.isInteger(Number(m.walkMinutes)) && m.walkMinutes != null);
-        if (!sample) return restaurant;
-        return { ...restaurant, walkMinutes: Number(sample.walkMinutes), distanceMeters: Number(sample.distanceMeters) };
+        // 실제 도보 거리: restaurants.walk_distance_m / walk_minutes 를 먼저 쓰고,
+        // 없으면 예전 방식(menus.거리m / 도보분), 그것도 없으면 recommend.js 에서 직선거리로 계산합니다.
+        const filled = (v) => v != null && v !== '' && Number.isFinite(Number(v));
+        const toWalk = (meters, minutes) => ({
+          ...restaurant,
+          distanceMeters: Math.round(Number(meters)),
+          walkMinutes: Math.max(1, Math.round(Number(minutes)))
+        });
+        if (filled(walk_distance_m) && filled(walk_minutes)) return toWalk(walk_distance_m, walk_minutes);
+        const sample = restaurant.menus.find((m) => filled(m.distanceMeters) && filled(m.walkMinutes));
+        return sample ? toWalk(sample.distanceMeters, sample.walkMinutes) : restaurant;
       });
     },
 

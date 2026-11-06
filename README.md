@@ -27,25 +27,33 @@ npm start                # http://localhost:3000
 3. 플랫폼 > Web > 사이트 도메인에 `http://localhost:3000` (배포 시 실제 도메인도) 등록
 4. 카카오맵 > 사용 설정을 **ON**으로 변경
 
-## 추천 알고리즘 (`src/recommend.js`)
+## 추천 알고리즘 (`src/services/recommend.js`)
 
-1. 카테고리가 일치하고 **예산 이하 메뉴가 1개 이상**인 식당만 남김
-2. 학교 좌표(`SCHOOL_LAT`, `SCHOOL_LNG`)와 식당 좌표로 직선거리(하버사인) 계산, 도보 시간 = 거리 ÷ 67m/분
-3. 정렬
-   - 추천순: 거리 50% + 평점 35% + 가격 여유 15% 가중 점수
-   - 거리순 / 평점순(동점이면 후기 수, 거리) / 가격순(예산 내 최저 메뉴가)
+1. **필터링**: 예산 이하이면서 고른 카테고리·맵기·특징에 맞는 메뉴가 1개 이상 있고, 도보 시간 조건(10분/15분 이내)을 만족하는 식당만 남김
+2. **거리·도보 시간**
+   - `restaurants.walk_distance_m`, `walk_minutes`(실제 도보 경로 기준)가 있으면 그 값을 사용
+   - 없으면 학교 좌표(`SCHOOL_LAT`, `SCHOOL_LNG`)와 식당 좌표의 직선거리(하버사인)를 계산하고, 도보 시간 = 거리 ÷ 67m/분
+3. **추천순 점수** (메뉴마다 계산, 100점 만점)
+   - 가격 4 : 취향 일치도 3 : 거리 2 : 평점 1 (= 40% · 30% · 20% · 10%)
+   - 가격·거리·평점은 후보들 안에서 최소-최대 정규화해 0~1로 맞춤
+   - 취향 일치도 = 고른 항목(카테고리, 맵기, 특징)만 비교한 평균. 고르지 않은 항목은 점수를 깎지 않음
+   - 식당에서 점수가 가장 높은 메뉴를 추천 메뉴로, 그 점수를 식당 점수로 사용. 동점이면 더 싼 곳, 그다음 더 가까운 곳
+4. **다른 정렬**
+   - 거리순 / 평점순(동점이면 후기 수, 거리) / 가격순(조건에 맞는 최저 메뉴 가격)
+   - 랜덤 추천: 조건을 무시하고 전체 식당·메뉴를 무작위로 섞음
 
 ## API
 
 | Method | Path | 설명 |
 | --- | --- | --- |
 | GET | `/api/config` | 카카오 키, 학교 좌표 |
-| GET | `/api/restaurants?budget=&category=&sort=` | 추천 목록 (`sort`: recommend, distance, rating, price) |
+| GET | `/api/restaurants?budget=&category=&sort=&spice=&traits=&walk=` | 추천 목록 (`sort`: recommend, distance, rating, price, random) |
 | GET/POST | `/api/restaurants/:id/reviews` | 후기 조회/등록 |
 | POST | `/api/auth/signup`, `/api/auth/login` | 회원가입/로그인 (Supabase Auth) |
 | GET | `/api/favorites` | 내 찜 목록 (Bearer 토큰) |
 | POST/DELETE | `/api/favorites/:id` | 찜 추가/해제 |
 | GET/PATCH | `/api/me` | 내 정보 조회 / 닉네임 변경 (`{ nickname }`) |
+| PATCH | `/api/me/password` | 비밀번호 변경 |
 | DELETE | `/api/me` | 회원 탈퇴 (`{ password }` 재확인, 찜·후기 함께 삭제) |
 | GET | `/api/me/reviews` | 내가 쓴 후기 목록 |
 | PATCH/DELETE | `/api/me/reviews/:id` | 내 후기 수정 (`{ rating, content }`) / 삭제 |
